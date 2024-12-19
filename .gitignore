@@ -1,6 +1,9 @@
 # Hidden
 .*
 
+# Hash
+*.hash
+
 # Historical
 historical/*
 

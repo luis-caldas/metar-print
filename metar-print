@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+
+###########
+# Globals #
+###########
+
+# Config
+
+AIRPORT=EICK
+PRINTER=ZJ-58
+
+# Specific
+
+COMMANDS_NEEDED=( metar lpr )
+
+ERROR_STRING="METAR pattern not found in NOAA data."
+
+PADDING=$'\n\n\n'
+LINE="- - - - - - - - - - - - - - - - "
+
+FILE_EXTENSION="txt"
+
+HASH_FILE=current.hash
+HISTORICAL_FOLDER=historical
+
+# Check for commands
+
+for command in "${COMMANDS_NEEDED[@]}"; do
+    if ! command -v "$command" &> /dev/null; then
+        echo "$command is needed"
+        exit 1
+    fi
+done
+
+# Print command with time
+
+########
+# Main #
+########
+
+main() {
+
+    # Get the current
+    current="$(metar -d "$AIRPORT" 2>&1)"
+
+    # Check if it was a valid response
+    if grep -q "$ERROR_STRING" <<< "$current"; then
+        echo "Could not find data"
+        exit 1
+    fi
+
+    # Hash and compare it
+    hash="$(md5sum <<< "$current" | awk '{ print $1 }')"
+
+    if [ -f "$HASH_FILE" ] && [ "$hash" == "$(cat "$HASH_FILE")" ] ;then
+        echo "Not updated"
+        exit 2
+    fi
+
+    # Update the hash file
+    echo -n "$hash" > "$HASH_FILE"
+
+    # Extract the file name
+    file_name="$(echo -n "$current" | head -n1 | cut -d' ' -f 1,2 | tr ' ' '-' | tr '[:upper:]' '[:lower:]').$FILE_EXTENSION"
+
+    # Update the metar
+    current="$(echo -n "$current" | sed $'1 a \n\n')"
+
+    # Store it
+    echo -n "$current" > "${HISTORICAL_FOLDER}/${file_name}"
+
+    # Verbose
+    echo -n "$current" $'\n\n' "$LINE" $'\n\n'
+
+    # Print it
+    printf -- "%s%s%s%s" "$current" "$PADDING" "$LINE" "$PADDING" | lpr -o raw -P "$PRINTER"
+
+}
+
+main "$@"

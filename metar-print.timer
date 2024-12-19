@@ -1,0 +1,10 @@
+[Unit]
+Description=METAR Printer Timer
+
+[Timer]
+Unit=metar-print.service
+OnBootSec=1min
+OnCalendar=*:0/15
+
+[Install]
+WantedBy=timers.target

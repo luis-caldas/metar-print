@@ -1,0 +1,6 @@
+[Unit]
+Description=Prints METAR Data
+
+[Service]
+Type=oneshot
+ExecStart=metar-print
